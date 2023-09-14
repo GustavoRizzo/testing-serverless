@@ -1,47 +1,49 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const hellowGustavo = require('./utils/hellow');
 const readFile = require('./utils/extract');
 
-function readAllFiles() {
-// get relative path to bucket folder
-const pastaBucket = path.join(__dirname, 'bucket');
+async function readAllFiles() {
+  try {
+    // Get the relative path to the bucket folder
+    const pastaBucket = path.join(__dirname, 'bucket');
 
-// read the bucket folder
-fs.readdir(pastaBucket, (err, arquivos) => {
-  if (err) {
+    // Read the bucket folder
+    const arquivos = await fs.readdir(pastaBucket);
+
+    // Array to store the results of file readings
+    const resultados = [];
+
+    // Iterate over the list of files
+    for (const arquivo of arquivos) {
+      const filePath = path.join(pastaBucket, arquivo);
+
+      try {
+        // Read the file and store the result in the array
+        const obj = await readFile(filePath);
+        resultados.push(obj);
+        //console.log('Result:', obj);
+      } catch (error) {
+        console.error(`Error reading file ${filePath}:`, error.message);
+      }
+    }
+
+    return resultados; // Return the array of results
+  } catch (err) {
     console.error('Error reading folder:', err);
-    return;
+    throw err; // Throw the error to handle it outside the function if needed
   }
-
-  // Iterates over the list of files
-  arquivos.forEach((arquivo) => {
-    const filePath = path.join(pastaBucket, arquivo);
-
-    readFile(filePath)
-      .then((obj) => {
-        console.log('Result:', obj);
-      })
-      .catch((error) => {
-        console.error(`Error to read file ${filePath}:`, error.message);
-      });
-
-  });
-});
 }
 
 module.exports.handler = async (event) => {
 
-  var res = readAllFiles();
-
-  // if res null, retrun 'ola'
-  var res = res || 'ola';
+  var res = await readAllFiles();
 
   return {
     statusCode: 200,
     body: JSON.stringify(
       {
-        message: 'res',
+        message: res,
         // input: event,
       },
       null,
